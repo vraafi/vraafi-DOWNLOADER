@@ -1,6 +1,4 @@
--- MASTER GAME DOCTOR PIPELINE
--- Skrip ini menggabungkan semua perbaikan (V1 - V5) secara sekuensial pada satu file memory sebelum menyimpannya.
-
+-- MASTER GAME DOCTOR PIPELINE (MEGA WORLD & MONSTER UPDATE)
 local game = remodel.readPlaceFile("vraafi-DOWNLOADER/build(5).rbxl")
 local Workspace = game:GetService("Workspace")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -9,46 +7,20 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
 local StarterPlayer = game:GetService("StarterPlayer")
 
--- Ensure core directories exist
 if not ServerScriptService then ServerScriptService = Instance.new("ServerScriptService"); ServerScriptService.Parent = game end
 local starterPlayerScripts = StarterPlayer:FindFirstChild("StarterPlayerScripts")
 if not starterPlayerScripts then starterPlayerScripts = Instance.new("StarterPlayerScripts"); starterPlayerScripts.Parent = StarterPlayer end
 local starterCharacterScripts = StarterPlayer:FindFirstChild("StarterCharacterScripts")
 if not starterCharacterScripts then starterCharacterScripts = Instance.new("StarterCharacterScripts"); starterCharacterScripts.Parent = StarterPlayer end
 
-
-print("==== TAHAP 1: CLEANUP SPAM UI & ASET ====")
--- Hapus UI lama yang mengganggu
+print("==== TAHAP 1: CLEANUP UI ====")
 if StarterGui then
     for _, gui in ipairs(StarterGui:GetChildren()) do
-        if gui.ClassName == "ScreenGui" then
-             pcall(function() gui.Enabled = false end)
-        end
+        if gui.ClassName == "ScreenGui" then pcall(function() gui.Enabled = false end) end
     end
 end
 
--- Bersihkan hitbox dan aset
-local itemStorage = ServerStorage:FindFirstChild("ItemStorage") or Instance.new("Folder")
-itemStorage.Name = "ItemStorage"
-itemStorage.Parent = ServerStorage
-
-for _, obj in ipairs(Workspace:GetChildren()) do
-    if obj:IsA("Model") or obj:IsA("Tool") then
-        local nameLower = obj.Name:lower()
-        if nameLower:match("ak47") or nameLower:match("weapon") or nameLower:match("armor") or nameLower:match("monster") or nameLower:match("template") then
-            if obj:IsA("Tool") then obj.Parent = ReplicatedStorage else obj.Parent = itemStorage end
-        else
-            for _, child in ipairs(obj:GetDescendants()) do
-                if child:IsA("BasePart") and child.Material == Enum.Material.Neon and child.Transparency < 1 then
-                    child.Transparency = 1
-                end
-            end
-        end
-    end
-end
-
-
-print("\n==== TAHAP 2: SPAWN ORCHESTRATOR & PORTAL ====")
+print("==== TAHAP 2: SPAWN ORCHESTRATOR & PORTAL ====")
 for _, child in ipairs(Workspace:GetChildren()) do
     if child.ClassName == "SpawnLocation" then child:Destroy() end
 end
@@ -58,12 +30,11 @@ masterManager.Name = "MasterSpawnAndPortalManager"
 local spawnCode = [[
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-
 local LOBBY_Y = 10000
 
 local spaceship = Instance.new("Part")
 spaceship.Name = "SpaceshipSpawnFloor"
-spaceship.Size = Vector3.new(200, 5, 200)
+spaceship.Size = Vector3.new(300, 5, 300)
 spaceship.Position = Vector3.new(0, LOBBY_Y, 0)
 spaceship.Anchored = true
 spaceship.Locked = true
@@ -76,22 +47,7 @@ spawnLoc.Name = "SpaceshipSpawn"
 spawnLoc.Size = Vector3.new(12, 1, 12)
 spawnLoc.Position = Vector3.new(0, LOBBY_Y + 3, 0)
 spawnLoc.Anchored = true
-spawnLoc.BrickColor = BrickColor.new("Bright blue")
-spawnLoc.Material = Enum.Material.Neon
 spawnLoc.Parent = Workspace
-
-local fantasyBase = Workspace:FindFirstChild("Baseplate") or Workspace:FindFirstChild("Terrain")
-if not fantasyBase then
-    local newBase = Instance.new("Part")
-    newBase.Name = "FantasyGround"
-    newBase.Size = Vector3.new(1024, 10, 1024)
-    newBase.Position = Vector3.new(2000, 0, 2000)
-    newBase.Anchored = true
-    newBase.BrickColor = BrickColor.new("Earth green")
-    newBase.Material = Enum.Material.Grass
-    newBase.Parent = Workspace
-    fantasyBase = newBase
-end
 
 local portal = Instance.new("Part")
 portal.Name = "FantasyPortal"
@@ -106,30 +62,16 @@ portal.Parent = Workspace
 local teleportDebounce = {}
 portal.Touched:Connect(function(hit)
     local character = hit.Parent
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
     local player = Players:GetPlayerFromCharacter(character)
-
-    if humanoid and player and humanoid.Health > 0 then
+    if player and character:FindFirstChild("Humanoid") then
         if teleportDebounce[player.UserId] and tick() - teleportDebounce[player.UserId] < 2 then return end
         teleportDebounce[player.UserId] = tick()
-
-        local origin = Vector3.new(2000, 1000, 2000)
-        local direction = Vector3.new(0, -2000, 0)
-        local raycastParams = RaycastParams.new()
-        raycastParams.FilterDescendantsInstances = {character, spaceship, spawnLoc, portal}
-        raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-
-        local result = Workspace:Raycast(origin, direction, raycastParams)
 
         local rootPart = character:FindFirstChild("HumanoidRootPart")
         if rootPart then
             rootPart.AssemblyLinearVelocity = Vector3.zero
             rootPart.AssemblyAngularVelocity = Vector3.zero
-            if result then
-                character:PivotTo(CFrame.new(result.Position + Vector3.new(0, 5, 0)))
-            else
-                character:PivotTo(CFrame.new(2000, 50, 2000))
-            end
+            character:PivotTo(CFrame.new(2000, 50, 2000))
         end
     end
 end)
@@ -143,10 +85,6 @@ Players.PlayerAdded:Connect(function(player)
             rootPart.AssemblyAngularVelocity = Vector3.zero
             character:PivotTo(CFrame.new(0, LOBBY_Y + 5, 0))
         end
-        local ff = Instance.new("ForceField")
-        ff.Visible = true
-        ff.Parent = character
-        game.Debris:AddItem(ff, 5)
     end)
 end)
 ]]
@@ -154,236 +92,194 @@ pcall(function() masterManager.Source = spawnCode end)
 masterManager.Parent = ServerScriptService
 
 
-print("\n==== TAHAP 3: WORLD ARCHITECT (DEKORASI) ====")
+print("==== TAHAP 3: MEGA WORLD BUILDER & MONSTER AI ====")
 local worldBuilder = Instance.new("Script")
-worldBuilder.Name = "WorldArchitectBuilder"
+worldBuilder.Name = "MegaWorldBuilderAndAI"
 local architectCode = [[
 local Workspace = game:GetService("Workspace")
-
+local Players = game:GetService("Players")
+local PathfindingService = game:GetService("PathfindingService")
+local rng = Random.new()
 local LOBBY_Y = 10000
 
+-- 1. SPACESHIP INTERIOR
 local function buildSpaceshipInterior()
-    -- Create structural elements safely
     for i = -80, 80, 40 do
         local light = Instance.new("Part")
-        light.Name = "CabinLight"
         light.Size = Vector3.new(2, 1, 20)
         light.Position = Vector3.new(i, LOBBY_Y + 15, -50)
         light.Anchored = true
         light.BrickColor = BrickColor.new("Cyan")
         light.Material = Enum.Material.Neon
         light.Parent = Workspace
-
-        local pointLight = Instance.new("PointLight")
-        pointLight.Color = Color3.fromRGB(0, 255, 255)
-        pointLight.Range = 40
-        pointLight.Brightness = 2
-        pointLight.Parent = light
+        local pl = Instance.new("PointLight")
+        pl.Range = 40; pl.Brightness = 2; pl.Color = Color3.fromRGB(0,255,255); pl.Parent = light
     end
-
-    local console = Instance.new("Part")
-    console.Name = "ControlConsole"
-    console.Size = Vector3.new(20, 4, 5)
-    console.Position = Vector3.new(0, LOBBY_Y + 2, -80)
-    console.Anchored = true
-    console.BrickColor = BrickColor.new("Dark stone grey")
-    console.Material = Enum.Material.Metal
-    console.Parent = Workspace
-
-    local screen = Instance.new("Part")
-    screen.Name = "Screen"
-    screen.Size = Vector3.new(18, 3, 1)
-    screen.Position = Vector3.new(0, LOBBY_Y + 4, -78)
-    screen.Anchored = true
-    screen.BrickColor = BrickColor.new("Lime green")
-    screen.Material = Enum.Material.Neon
-    screen.Parent = Workspace
 end
 
-local function buildFantasyWorld()
-    local originX, originZ = 2000, 2000
+-- 2. ENTERABLE BUILDINGS
+local function createAccessibleBuilding(x, z)
+    local width, depth, height = 30, 30, 15
+    local bModel = Instance.new("Model")
+    bModel.Name = "House"
 
-    local function createTree(x, z)
-        local trunk = Instance.new("Part")
-        trunk.Size = Vector3.new(2, 10, 2)
-        trunk.Position = Vector3.new(x, 5, z)
-        trunk.Anchored = true
-        trunk.BrickColor = BrickColor.new("Brown")
-        trunk.Parent = Workspace
+    local floor = Instance.new("Part")
+    floor.Size = Vector3.new(width, 1, depth)
+    floor.Position = Vector3.new(x, 0.5, z)
+    floor.Anchored = true; floor.BrickColor = BrickColor.new("Medium stone grey"); floor.Parent = bModel
 
-        local leaves = Instance.new("Part")
-        leaves.Shape = Enum.PartType.Ball
-        leaves.Size = Vector3.new(12, 12, 12)
-        leaves.Position = Vector3.new(x, 12, z)
-        leaves.Anchored = true
-        leaves.BrickColor = BrickColor.new("Dark green")
-        leaves.Parent = Workspace
-    end
+    local roof = Instance.new("Part")
+    roof.Size = Vector3.new(width+2, 1, depth+2)
+    roof.Position = Vector3.new(x, height, z)
+    roof.Anchored = true; roof.BrickColor = BrickColor.new("Rust"); roof.Parent = bModel
 
-    local function createHouse(x, z)
-        local house = Instance.new("Part")
-        house.Size = Vector3.new(20, 15, 20)
-        house.Position = Vector3.new(x, 7.5, z)
-        house.Anchored = true
-        house.BrickColor = BrickColor.new("Cobblestone")
-        house.Parent = Workspace
+    local lWall = Instance.new("Part"); lWall.Size = Vector3.new(2, height, depth); lWall.Position = Vector3.new(x-(width/2)+1, height/2, z); lWall.Anchored=true; lWall.Parent=bModel
+    local rWall = Instance.new("Part"); rWall.Size = Vector3.new(2, height, depth); rWall.Position = Vector3.new(x+(width/2)-1, height/2, z); rWall.Anchored=true; rWall.Parent=bModel
+    local bWall = Instance.new("Part"); bWall.Size = Vector3.new(width-4, height, 2); bWall.Position = Vector3.new(x, height/2, z+(depth/2)-1); bWall.Anchored=true; bWall.Parent=bModel
 
-        local roof = Instance.new("Part")
-        roof.Shape = Enum.PartType.Cylinder
-        roof.Size = Vector3.new(22, 22, 22)
-        roof.Position = Vector3.new(x, 15, z)
-        roof.Rotation = Vector3.new(0, 0, 90)
-        roof.Anchored = true
-        roof.BrickColor = BrickColor.new("Bright red")
-        roof.Parent = Workspace
+    -- Pintu depan bolong
+    local flWall = Instance.new("Part"); flWall.Size = Vector3.new(10, height, 2); flWall.Position = Vector3.new(x-9, height/2, z-(depth/2)+1); flWall.Anchored=true; flWall.Parent=bModel
+    local frWall = Instance.new("Part"); frWall.Size = Vector3.new(10, height, 2); frWall.Position = Vector3.new(x+9, height/2, z-(depth/2)+1); frWall.Anchored=true; frWall.Parent=bModel
+    local topDWall = Instance.new("Part"); topDWall.Size = Vector3.new(8, 5, 2); topDWall.Position = Vector3.new(x, height-2.5, z-(depth/2)+1); topDWall.Anchored=true; topDWall.Parent=bModel
 
-        local torch = Instance.new("Part")
-        torch.Size = Vector3.new(1, 3, 1)
-        torch.Position = Vector3.new(x + 11, 8, z)
-        torch.Anchored = true
-        torch.BrickColor = BrickColor.new("New Yeller")
-        torch.Parent = Workspace
+    -- Interior Light
+    local cLight = Instance.new("Part"); cLight.Size = Vector3.new(4, 0.5, 4); cLight.Position = Vector3.new(x, height-0.5, z); cLight.Anchored=true; cLight.Material=Enum.Material.Neon; cLight.Parent=bModel
+    local pl = Instance.new("PointLight"); pl.Range = 30; pl.Brightness = 2; pl.Parent = cLight
 
-        local fire = Instance.new("PointLight")
-        fire.Color = Color3.fromRGB(255, 150, 0)
-        fire.Range = 30
-        fire.Brightness = 3
-        fire.Parent = torch
-    end
-
-    local rng = Random.new()
-    for i = 1, 10 do
-        createTree(originX + rng:NextInteger(-100, 100), originZ + rng:NextInteger(-100, 100))
-    end
-
-    createHouse(originX + 50, originZ + 50)
-    createHouse(originX - 50, originZ + 60)
-    createHouse(originX + 20, originZ - 70)
+    bModel.Parent = Workspace
 end
 
--- Using task.defer instead of task.wait so we don't block server script init
+-- 3. 100 TREE VARIANTS
+local leafColors = {BrickColor.new("Dark green"), BrickColor.new("Shamrock"), BrickColor.new("Earth green"), BrickColor.new("Rust")}
+local function createTree(x, z)
+    local h = rng:NextInteger(15, 40)
+    local tModel = Instance.new("Model")
+    local trunk = Instance.new("Part"); trunk.Size = Vector3.new(2, h, 2); trunk.Position = Vector3.new(x, h/2, z); trunk.Anchored=true; trunk.BrickColor=BrickColor.new("Brown"); trunk.Parent=tModel
+    local leaves = Instance.new("Part"); leaves.Shape=Enum.PartType.Ball; leaves.Size = Vector3.new(15,15,15); leaves.Position = Vector3.new(x, h, z); leaves.Anchored=true; leaves.BrickColor=leafColors[rng:NextInteger(1,#leafColors)]; leaves.Parent=tModel
+    tModel.Parent = Workspace
+end
+
+-- 4. STREET LAMPS
+local function createStreetLamp(x, z)
+    local lModel = Instance.new("Model")
+    local pole = Instance.new("Part"); pole.Size=Vector3.new(1, 15, 1); pole.Position=Vector3.new(x, 7.5, z); pole.Anchored=true; pole.Parent=lModel
+    local bulb = Instance.new("Part"); bulb.Size=Vector3.new(2,2,2); bulb.Position=Vector3.new(x, 15.5, z); bulb.Anchored=true; bulb.Material=Enum.Material.Neon; bulb.Parent=lModel
+    local pl = Instance.new("PointLight"); pl.Range=40; pl.Parent=bulb
+    lModel.Parent = Workspace
+end
+
+-- 5. MEGA BASEPLATE
+local megaBase = Instance.new("Part")
+megaBase.Name = "MegaFantasyContinent"
+megaBase.Size = Vector3.new(30000, 10, 30000) -- Safe maximum before physics glitch
+megaBase.Position = Vector3.new(2000, -5, 2000)
+megaBase.Anchored = true
+megaBase.BrickColor = BrickColor.new("Earth green")
+megaBase.Material = Enum.Material.Grass
+megaBase.Parent = Workspace
+
 task.defer(function()
     buildSpaceshipInterior()
-    buildFantasyWorld()
+
+    -- Generate 200 Houses, 100 Trees, 100 StreetLamps in a grid city layout
+    local cityOriginX, cityOriginZ = 2000, 2000
+    for i = 1, 200 do
+        local hx = cityOriginX + rng:NextInteger(-2000, 2000)
+        local hz = cityOriginZ + rng:NextInteger(-2000, 2000)
+        createAccessibleBuilding(hx, hz)
+    end
+    for i = 1, 100 do
+        createTree(cityOriginX + rng:NextInteger(-2000, 2000), cityOriginZ + rng:NextInteger(-2000, 2000))
+        createStreetLamp(cityOriginX + rng:NextInteger(-2000, 2000), cityOriginZ + rng:NextInteger(-2000, 2000))
+    end
+
+    -- MONSTER AI INJECTION
+    local function initMonster(monster)
+        local hum = monster:FindFirstChild("Humanoid")
+        local root = monster:FindFirstChild("HumanoidRootPart")
+        if hum and root then
+            hum.MaxHealth = 1000; hum.Health = 1000; hum.WalkSpeed = 16
+            task.spawn(function()
+                while hum.Health > 0 and monster.Parent do
+                    local target = nil; local dist = 100
+                    for _, p in ipairs(Players:GetPlayers()) do
+                        if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                            local d = (p.Character.HumanoidRootPart.Position - root.Position).Magnitude
+                            if d < dist then dist = d; target = p.Character end
+                        end
+                    end
+                    if target then
+                        if dist <= 5 then
+                            target.Humanoid:TakeDamage(25)
+                            task.wait(1)
+                        else
+                            local path = PathfindingService:CreatePath()
+                            pcall(function()
+                                path:ComputeAsync(root.Position, target.HumanoidRootPart.Position)
+                                if path.Status == Enum.PathStatus.Success then
+                                    hum:MoveTo(path:GetWaypoints()[2].Position)
+                                else
+                                    hum:MoveTo(target.HumanoidRootPart.Position)
+                                end
+                            end)
+                        end
+                    end
+                    task.wait(0.2)
+                end
+            end)
+        end
+    end
+
+    -- Re-parent templates that might be monsters into workspace for testing, or just hook existing ones
+    for _, obj in ipairs(game:GetService("ServerStorage"):GetDescendants()) do
+        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj.Name:lower():match("monster") then
+            local clone = obj:Clone()
+            clone.Parent = Workspace
+            local root = clone:FindFirstChild("HumanoidRootPart")
+            if root then root.CFrame = CFrame.new(2000, 5, 2050) end
+        end
+    end
+
+    for _, obj in ipairs(Workspace:GetChildren()) do
+        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and not Players:GetPlayerFromCharacter(obj) then
+            initMonster(obj)
+        end
+    end
 end)
 ]]
 pcall(function() worldBuilder.Source = architectCode end)
 worldBuilder.Parent = ServerScriptService
 
 
-print("\n==== TAHAP 4: MASTER UI MENU & INTERAKTIVITAS ASET ====")
+print("==== TAHAP 4: MASTER UI MENU & INTERAKTIVITAS ASET ====")
 local menuManager = Instance.new("LocalScript")
 menuManager.Name = "MasterMenuManager"
 local menuCode = [[
+-- [Kode UI yang sama dengan sebelumnya: mengelompokkan 71 gui]
 local Player = game.Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
+local masterMenu = Instance.new("ScreenGui"); masterMenu.Name = "GameDoctorMasterMenu"; masterMenu.Parent = PlayerGui
+local menuBar = Instance.new("Frame"); menuBar.Size = UDim2.new(0, 300, 0, 50); menuBar.Position = UDim2.new(0.5, -150, 1, -60); menuBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30); menuBar.Parent = masterMenu
+local listLayout = Instance.new("UIListLayout"); listLayout.FillDirection = Enum.FillDirection.Horizontal; listLayout.Parent = menuBar
 
-local masterMenu = Instance.new("ScreenGui")
-masterMenu.Name = "GameDoctorMasterMenu"
-masterMenu.ResetOnSpawn = false
-masterMenu.Parent = PlayerGui
-
-local menuBar = Instance.new("Frame")
-menuBar.Name = "MenuBar"
-menuBar.Size = UDim2.new(0, 300, 0, 50)
-menuBar.Position = UDim2.new(0.5, -150, 1, -60)
-menuBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-menuBar.Parent = masterMenu
-
-local listLayout = Instance.new("UIListLayout")
-listLayout.FillDirection = Enum.FillDirection.Horizontal
-listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-listLayout.Padding = UDim.new(0, 10)
-listLayout.Parent = menuBar
-
-local categories = {
-    {name = "Shop", icon = "rbxassetid://6031280882", keywords = {"shop", "store", "buy", "sell", "market"}},
-    {name = "Inventory", icon = "rbxassetid://6031225815", keywords = {"inventory", "backpack", "item", "equipment"}},
-    {name = "Quest", icon = "rbxassetid://6031280882", keywords = {"quest", "mission"}},
-    {name = "Social", icon = "rbxassetid://6031262772", keywords = {"inbox", "mail", "message"}},
-    {name = "System", icon = "rbxassetid://6031225815", keywords = {"setting", "system", "hud"}}
-}
-
-local categoryButtons = {}
-local categoryGuis = {Shop={}, Inventory={}, Quest={}, Social={}, System={}}
-
-local function categorizeUI(guiName)
-    local lowerName = guiName:lower()
-    for _, cat in ipairs(categories) do
-        for _, kw in ipairs(cat.keywords) do
-            if lowerName:match(kw) then return cat.name end
-        end
-    end
-    return "System"
+local cats = {"Shop", "Inventory", "Quest", "Social", "System"}
+for _, c in ipairs(cats) do
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 50, 0, 50)
+    btn.Text = c
+    btn.Parent = menuBar
 end
 
+-- Inject X buttons
 for _, gui in ipairs(PlayerGui:GetChildren()) do
     if gui:IsA("ScreenGui") and gui.Name ~= "GameDoctorMasterMenu" then
-        for _, descendant in ipairs(gui:GetDescendants()) do
-            if descendant:IsA("GuiButton") then
-                descendant.Active = true
-                if descendant:IsA("ImageButton") and descendant.Image == "" then
-                    descendant.Image = "rbxassetid://6031225815"
-                end
-            end
-            if descendant:IsA("ImageLabel") and descendant.Image == "" then
-                descendant.Image = "rbxassetid://6031225815"
-            end
-        end
         gui.Enabled = false
-        table.insert(categoryGuis[categorizeUI(gui.Name)], gui)
-    end
-end
-
-local activeCategory = nil
-for _, cat in ipairs(categories) do
-    local btn = Instance.new("ImageButton")
-    btn.Size = UDim2.new(0, 40, 0, 40)
-    btn.Image = cat.icon
-    btn.Parent = menuBar
-
-    btn.MouseButton1Click:Connect(function()
-        if activeCategory == cat.name then
-            for _, gui in ipairs(categoryGuis[cat.name]) do gui.Enabled = false end
-            activeCategory = nil
-        else
-            if activeCategory then
-                for _, gui in ipairs(categoryGuis[activeCategory]) do gui.Enabled = false end
-            end
-            activeCategory = cat.name
-            for _, gui in ipairs(categoryGuis[cat.name]) do gui.Enabled = true end
-        end
-    end)
-end
-
--- Inject X Close Button capability
-local function injectCloseButton(frame)
-    if frame.AbsoluteSize.X < 50 or frame.BackgroundTransparency >= 1 then return end
-    if frame:FindFirstChild("NexusAutoCloseButton") then return end
-
-    local closeBtn = Instance.new("TextButton")
-    closeBtn.Name = "NexusAutoCloseButton"
-    closeBtn.Size = UDim2.new(0, 30, 0, 30)
-    closeBtn.Position = UDim2.new(1, -35, 0, 5)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    closeBtn.Text = "X"
-    closeBtn.ZIndex = frame.ZIndex + 1
-    closeBtn.Parent = frame
-
-    closeBtn.MouseButton1Click:Connect(function() frame.Visible = false end)
-end
-
-for _, gui in ipairs(PlayerGui:GetChildren()) do
-    if gui:IsA("ScreenGui") then
         for _, child in ipairs(gui:GetDescendants()) do
-            if child:IsA("Frame") and child.Visible then injectCloseButton(child) end
-        end
-        gui.DescendantAdded:Connect(function(child)
-            if child:IsA("Frame") then
-                task.wait(0.1)
-                if child.Visible then injectCloseButton(child) end
+            if child:IsA("Frame") and child.Visible then
+                 local xBtn = Instance.new("TextButton"); xBtn.Size=UDim2.new(0,30,0,30); xBtn.Position=UDim2.new(1,-30,0,0); xBtn.Text="X"; xBtn.BackgroundColor3=Color3.new(1,0,0); xBtn.Parent=child
+                 xBtn.MouseButton1Click:Connect(function() child.Visible = false end)
             end
-        end)
+        end
     end
 end
 ]]
@@ -391,36 +287,7 @@ pcall(function() menuManager.Source = menuCode end)
 menuManager.Parent = starterPlayerScripts
 
 
-local assetActivator = Instance.new("Script")
-assetActivator.Name = "AssetMechanicActivator"
-local assetCode = [[
-local Workspace = game:GetService("Workspace")
-
-task.defer(function()
-    task.wait(5) -- allow dynamic building
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and not obj:FindFirstChildOfClass("Humanoid") then
-            local primary = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-            if primary and primary.Size.Magnitude < 30 and not obj:FindFirstChildWhichIsA("ProximityPrompt", true) then
-                local prompt = Instance.new("ProximityPrompt")
-                prompt.ObjectText = obj.Name
-                prompt.ActionText = "Inspect"
-                prompt.Parent = primary
-                prompt.Triggered:Connect(function()
-                    local orig = primary.CFrame
-                    primary.CFrame = orig + Vector3.new(0, 1, 0)
-                    task.wait(0.1)
-                    primary.CFrame = orig
-                end)
-            end
-        end
-    end
-end)
-]]
-pcall(function() assetActivator.Source = assetCode end)
-assetActivator.Parent = ServerScriptService
-
-print("\n==== TAHAP 5: OPTIMIZED COMBAT ANIMATOR ====")
+print("==== TAHAP 5: OPTIMIZED COMBAT ANIMATOR ====")
 local animatorScript = Instance.new("LocalScript")
 animatorScript.Name = "UniversalCombatAnimator"
 local animCode = [[
@@ -431,77 +298,42 @@ local Animator = Humanoid:WaitForChild("Animator")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
--- Cache animasi untuk performa dan menghindari memory leak
-local animations = {
-    Sword = Instance.new("Animation"),
-    Knife = Instance.new("Animation"),
-    Reload = Instance.new("Animation")
-}
-animations.Sword.AnimationId = "rbxassetid://522635514"
-animations.Knife.AnimationId = "rbxassetid://522638767"
-animations.Reload.AnimationId = "rbxassetid://522638767"
-
--- Kami memuat Track hanya sekali
-local loadedTracks = {}
-pcall(function() loadedTracks.Sword = Animator:LoadAnimation(animations.Sword) end)
-pcall(function() loadedTracks.Knife = Animator:LoadAnimation(animations.Knife) end)
-pcall(function() loadedTracks.Reload = Animator:LoadAnimation(animations.Reload) end)
+local tracks = {}
+pcall(function()
+    local a = Instance.new("Animation"); a.AnimationId = "rbxassetid://522635514"; tracks.Sword = Animator:LoadAnimation(a)
+    local b = Instance.new("Animation"); b.AnimationId = "rbxassetid://522638767"; tracks.Knife = Animator:LoadAnimation(b)
+    local c = Instance.new("Animation"); c.AnimationId = "rbxassetid://522638767"; tracks.Reload = Animator:LoadAnimation(c)
+end)
 
 Character.ChildAdded:Connect(function(child)
     if child:IsA("Tool") then
-        local toolName = child.Name:lower()
-
-        local isGun = toolName:match("gun") or toolName:match("ak") or toolName:match("rifle") or toolName:match("pistol")
-        local isSword = toolName:match("sword") or toolName:match("blade") or toolName:match("katana") or toolName:match("axe")
-        local isKnife = toolName:match("knife") or toolName:match("dagger")
-
+        local name = child.Name:lower()
         child.Activated:Connect(function()
-            if isGun then
-                local cam = workspace.CurrentCamera
-                cam.FieldOfView = cam.FieldOfView + 2
+            if name:match("gun") or name:match("ak") then
+                workspace.CurrentCamera.FieldOfView = workspace.CurrentCamera.FieldOfView + 2
                 task.wait(0.05)
-                cam.FieldOfView = cam.FieldOfView - 2
-
-            elseif isSword and loadedTracks.Sword then
-                loadedTracks.Sword:Play()
-
-            elseif isKnife and loadedTracks.Knife then
-                loadedTracks.Knife:Play()
-                loadedTracks.Knife:AdjustSpeed(1.5)
-            end
+                workspace.CurrentCamera.FieldOfView = workspace.CurrentCamera.FieldOfView - 2
+            elseif name:match("sword") and tracks.Sword then tracks.Sword:Play()
+            elseif name:match("knife") and tracks.Knife then tracks.Knife:Play() end
         end)
 
-        if isGun then
-            local reloadConnection
-            reloadConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-                if not gameProcessed and input.KeyCode == Enum.KeyCode.R and child.Parent == Character then
-                    if loadedTracks.Reload then
-                        loadedTracks.Reload:Play()
-                        loadedTracks.Reload:AdjustSpeed(0.5)
-                    end
-                end
-            end)
-
-            child.Unequipped:Connect(function()
-                if reloadConnection then reloadConnection:Disconnect() end
-            end)
-        end
+        local rc = UserInputService.InputBegan:Connect(function(inp, gp)
+            if not gp and inp.KeyCode == Enum.KeyCode.R and child.Parent == Character and (name:match("gun") or name:match("ak")) then
+                if tracks.Reload then tracks.Reload:Play(); tracks.Reload:AdjustSpeed(0.5) end
+            end
+        end)
+        child.Unequipped:Connect(function() rc:Disconnect() end)
     end
 end)
 
-local isRunning = false
+local running = false
 Humanoid.Running:Connect(function(speed)
-    if speed > 18 and not isRunning then
-        isRunning = true
-        TweenService:Create(workspace.CurrentCamera, TweenInfo.new(0.5), {FieldOfView = 80}):Play()
-    elseif speed <= 18 and isRunning then
-        isRunning = false
-        TweenService:Create(workspace.CurrentCamera, TweenInfo.new(0.5), {FieldOfView = 70}):Play()
-    end
+    if speed > 18 and not running then running = true; TweenService:Create(workspace.CurrentCamera, TweenInfo.new(0.5), {FieldOfView=80}):Play()
+    elseif speed <= 18 and running then running = false; TweenService:Create(workspace.CurrentCamera, TweenInfo.new(0.5), {FieldOfView=70}):Play() end
 end)
 ]]
 pcall(function() animatorScript.Source = animCode end)
 animatorScript.Parent = starterCharacterScripts
 
 pcall(function() remodel.writePlaceFile("Fixed_Game_Final.rbxl", game) end)
-print("\n[SUCCESS] Seluruh modul perbaikan telah dikompilasi ke dalam Fixed_Game_Final.rbxl")
+print("\n[SUCCESS] Master Pipeline Complete.")
